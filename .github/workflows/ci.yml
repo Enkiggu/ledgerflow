@@ -59,10 +59,6 @@ jobs:
           cache: maven
 
       - name: Compile and Run Unit & Integration Tests
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ledgerflow
-          SPRING_REDIS_HOST: localhost
-          SPRING_RABBITMQ_HOST: localhost
         run: mvn clean test
 
       - name: Package JAR Application
