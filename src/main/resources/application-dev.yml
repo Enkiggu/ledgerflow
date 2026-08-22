@@ -1,0 +1,78 @@
+server:
+  port: 8888
+  shutdown: graceful
+
+spring:
+  application:
+    name: ledgerflow-dev
+
+  datasource:
+    url: jdbc:h2:mem:ledgerflow_dev;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    hikari:
+      pool-name: LedgerFlowDevHikariCP
+      maximum-pool-size: 10
+      minimum-idle: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  flyway:
+    enabled: false
+
+  cache:
+    type: simple
+
+  data:
+    redis:
+      repositories:
+        enabled: false
+      host: localhost
+      port: 6379
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    listener:
+      type: simple
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: false
+    rabbit:
+      enabled: false
+
+ledgerflow:
+  security:
+    admin-api-key: ${LEDGERFLOW_ADMIN_API_KEY:local-development-only}
+  idempotency:
+    ttl-hours: 24
+  rate-limit:
+    enabled: false
+  payment:
+    provider:
+      webhook-secret: ${LEDGERFLOW_WEBHOOK_SECRET:local-development-webhook-only}
+  outbox:
+    polling-interval-ms: 2000
+    batch-size: 50
+    max-retry-attempts: 5

@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: ledgerflow-test
+
+  datasource:
+    url: jdbc:h2:mem:ledgerflow_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+
+  cache:
+    type: simple
+
+  flyway:
+    enabled: false
+
+  data:
+    redis:
+      repositories:
+        enabled: false
+      host: localhost
+      port: 6379
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    listener:
+      simple:
+        auto-startup: false
+
+management:
+  health:
+    redis:
+      enabled: false
+    rabbit:
+      enabled: false
+
+ledgerflow:
+  idempotency:
+    ttl-hours: 1
+    lock-timeout-seconds: 5
+  rate-limit:
+    enabled: false
+    default-limit-per-minute: 1000
+    payment-limit-per-minute: 1000
+    order-limit-per-minute: 1000
+  outbox:
+    polling-interval-ms: 10000
+    batch-size: 10
+    max-attempts: 3
+    initial-backoff-ms: 500
+  payment:
+    provider:
+      timeout-ms: 1000
+      webhook-secret: test-secret-key-32-chars-long-abc!
+  security:
+    admin-api-key: test-admin-key
