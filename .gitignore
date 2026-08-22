@@ -1,0 +1,15 @@
+target/
+.m2/
+.mvn/settings.xml
+.idea/
+.vscode/
+*.iml
+*.class
+*.jar
+*.log
+*.db
+.env
+.env.*
+!.env.example
+dependency-reduced-pom.xml
+hs_err_pid*
