@@ -1,0 +1,120 @@
+services:
+  ledgerflow-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ledgerflow-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: "prod"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/ledgerflow"
+      SPRING_DATASOURCE_USERNAME: "postgres"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}"
+      SPRING_REDIS_HOST: "redis"
+      SPRING_REDIS_PORT: "6379"
+      SPRING_RABBITMQ_HOST: "rabbitmq"
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: "guest"
+      SPRING_RABBITMQ_PASSWORD: "guest"
+      LEDGERFLOW_ADMIN_API_KEY: "${LEDGERFLOW_ADMIN_API_KEY:?Set LEDGERFLOW_ADMIN_API_KEY}"
+      LEDGERFLOW_WEBHOOK_SECRET: "${LEDGERFLOW_WEBHOOK_SECRET:?Set LEDGERFLOW_WEBHOOK_SECRET}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ledgerflow-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ledgerflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ledgerflow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ledgerflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ledgerflow-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: ledgerflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ledgerflow-net
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: ledgerflow-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ledgerflow-net
+
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: ledgerflow-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - ledgerflow-app
+    networks:
+      - ledgerflow-net
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: ledgerflow-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - ledgerflow-net
+
+networks:
+  ledgerflow-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
